@@ -5,6 +5,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.File;
 
 public class MainFrame extends JFrame {
 
@@ -48,8 +49,7 @@ public class MainFrame extends JFrame {
         organizerService = new FileOrganizerService(
                 categoryManager,
                 historyService,
-                this::log
-        );
+                this::log);
 
         setTitle("Smart Download Organizer");
         setSize(1000, 680);
@@ -134,9 +134,8 @@ public class MainFrame extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         categoryTableModel = new DefaultTableModel(
-                new Object[]{"Danh mục", "Đuôi file", "Thư mục lưu", "Bật"},
-                0
-        ) {
+                new Object[] { "Danh mục", "Đuôi file", "Thư mục lưu", "Bật" },
+                0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == 1 || column == 3;
@@ -178,9 +177,8 @@ public class MainFrame extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         historyTableModel = new DefaultTableModel(
-                new Object[]{"Thời gian", "Tên file", "Danh mục", "Nguồn cũ", "Đích mới", "Trạng thái"},
-                0
-        ) {
+                new Object[] { "Thời gian", "Tên file", "Danh mục", "Nguồn cũ", "Đích mới", "Trạng thái" },
+                0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -257,11 +255,11 @@ public class MainFrame extends JFrame {
         categoryTableModel.setRowCount(0);
 
         for (Category category : categoryManager.getCategories()) {
-            categoryTableModel.addRow(new Object[]{
-                category.getName(),
-                category.getExtensionsAsText(),
-                category.getTargetFolder().toString(),
-                category.isEnabled()
+            categoryTableModel.addRow(new Object[] {
+                    category.getName(),
+                    category.getExtensionsAsText(),
+                    category.getTargetFolder().toString(),
+                    category.isEnabled()
             });
         }
     }
@@ -275,13 +273,13 @@ public class MainFrame extends JFrame {
             historyTableModel.setRowCount(0);
 
             for (HistoryRecord record : historyService.getHistoryRecords()) {
-                historyTableModel.addRow(new Object[]{
-                    record.getTimeText(),
-                    record.getFileName(),
-                    record.getCategoryName(),
-                    record.getSourcePath().toString(),
-                    record.getTargetPath().toString(),
-                    record.getStatus()
+                historyTableModel.addRow(new Object[] {
+                        record.getTimeText(),
+                        record.getFileName(),
+                        record.getCategoryName(),
+                        record.getSourcePath().toString(),
+                        record.getTargetPath().toString(),
+                        record.getStatus()
                 });
             }
         });
@@ -302,15 +300,12 @@ public class MainFrame extends JFrame {
     }
 
     private void chooseSourceFolder() {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        File selectedFolder = chooseFolderNative("Chọn thư mục cần sắp xếp");
 
-        int result = chooser.showOpenDialog(this);
-
-        if (result == JFileChooser.APPROVE_OPTION) {
-            sourceFolderField.setText(chooser.getSelectedFile().getAbsolutePath());
+        if (selectedFolder != null) {
+            sourceFolderField.setText(selectedFolder.getAbsolutePath());
             saveSettingsToFile();
-            log("Đã chọn thư mục nguồn: " + chooser.getSelectedFile().getAbsolutePath());
+            log("Đã chọn thư mục nguồn: " + selectedFolder.getAbsolutePath());
         }
     }
 
@@ -322,20 +317,19 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        File selectedFolder = chooseFolderNative("Chọn thư mục lưu");
 
-        int result = chooser.showOpenDialog(this);
+        if (selectedFolder != null) {
+            Path selectedPath = selectedFolder.toPath();
 
-        if (result == JFileChooser.APPROVE_OPTION) {
-            Path selectedFolder = chooser.getSelectedFile().toPath();
-
-            categoryManager.updateCategoryTargetFolder(selectedRow, selectedFolder);
+            categoryManager.updateCategoryTargetFolder(selectedRow, selectedPath);
             loadCategoriesToTable();
             saveSettingsToFile();
 
             log("Đã đổi thư mục lưu cho danh mục: "
-                    + categoryManager.getCategories().get(selectedRow).getName());
+                    + categoryManager.getCategories().get(selectedRow).getName()
+                    + " → "
+                    + selectedPath);
         }
     }
 
@@ -357,8 +351,7 @@ public class MainFrame extends JFrame {
         folderWatcherService = new FolderWatcherService(
                 sourceFolder,
                 organizerService,
-                this::log
-        );
+                this::log);
 
         watcherThread = new Thread(folderWatcherService);
         watcherThread.setDaemon(true);
@@ -405,8 +398,7 @@ public class MainFrame extends JFrame {
                 this,
                 "Bạn có chắc muốn hoàn tác file này về thư mục ban đầu không?",
                 "Xác nhận hoàn tác",
-                JOptionPane.YES_NO_OPTION
-        );
+                JOptionPane.YES_NO_OPTION);
 
         if (confirm != JOptionPane.YES_OPTION) {
             return;
@@ -424,8 +416,7 @@ public class MainFrame extends JFrame {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Lỗi khi hoàn tác: " + e.getMessage()
-            );
+                    "Lỗi khi hoàn tác: " + e.getMessage());
         }
     }
 
@@ -460,14 +451,12 @@ public class MainFrame extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Đã xuất cài đặt thành công:\n" + exportPath
-                );
+                        "Đã xuất cài đặt thành công:\n" + exportPath);
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Lỗi khi xuất cài đặt: " + e.getMessage()
-                );
+                        "Lỗi khi xuất cài đặt: " + e.getMessage());
             }
         }
     }
@@ -493,14 +482,12 @@ public class MainFrame extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Đã nhập cài đặt thành công:\n" + importPath
-                );
+                        "Đã nhập cài đặt thành công:\n" + importPath);
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Lỗi khi nhập cài đặt: " + e.getMessage()
-                );
+                        "Lỗi khi nhập cài đặt: " + e.getMessage());
             }
         }
     }
@@ -515,8 +502,7 @@ public class MainFrame extends JFrame {
                 this,
                 this::startAutoWatch,
                 this::stopAutoWatch,
-                this::exitApplication
-        );
+                this::exitApplication);
 
         trayService.setupTray();
     }
@@ -530,12 +516,11 @@ public class MainFrame extends JFrame {
                 int choice = JOptionPane.showConfirmDialog(
                         MainFrame.this,
                         "Bạn muốn ẩn ứng dụng xuống khay hệ thống không?\n\n"
-                        + "Yes: Ẩn xuống khay\n"
-                        + "No: Thoát ứng dụng\n"
-                        + "Cancel: Hủy",
+                                + "Yes: Ẩn xuống khay\n"
+                                + "No: Thoát ứng dụng\n"
+                                + "Cancel: Hủy",
                         "Smart Download Organizer",
-                        JOptionPane.YES_NO_CANCEL_OPTION
-                );
+                        JOptionPane.YES_NO_CANCEL_OPTION);
 
                 if (choice == JOptionPane.YES_OPTION) {
                     hideToTray();
@@ -578,8 +563,7 @@ public class MainFrame extends JFrame {
         if (!autoStartService.isWindows()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Tính năng tự chạy hiện chỉ hỗ trợ Windows."
-            );
+                    "Tính năng tự chạy hiện chỉ hỗ trợ Windows.");
             autoStartCheckBox.setSelected(false);
             return;
         }
@@ -595,16 +579,14 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(
                         this,
                         "Đã bật tự chạy cùng Windows.\nFile Startup:\n"
-                        + autoStartService.getAutoStartFilePath()
-                );
+                                + autoStartService.getAutoStartFilePath());
             } else {
                 autoStartCheckBox.setSelected(false);
                 configService.saveAutoStartSetting(false);
                 JOptionPane.showMessageDialog(
                         this,
                         "Không thể bật tự chạy.\n"
-                        + "Lưu ý: tính năng này chỉ hoạt động khi app chạy từ file .jar đã build."
-                );
+                                + "Lưu ý: tính năng này chỉ hoạt động khi app chạy từ file .jar đã build.");
             }
 
         } else {
@@ -615,15 +597,81 @@ public class MainFrame extends JFrame {
                 log("Đã tắt tự chạy cùng Windows.");
                 JOptionPane.showMessageDialog(
                         this,
-                        "Đã tắt tự chạy cùng Windows."
-                );
+                        "Đã tắt tự chạy cùng Windows.");
             } else {
                 JOptionPane.showMessageDialog(
                         this,
-                        "Không thể tắt tự chạy cùng Windows."
-                );
+                        "Không thể tắt tự chạy cùng Windows.");
             }
         }
+    }
+
+    private JFileChooser createFolderChooser() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(false);
+
+        /*
+         * Trên macOS, ổ rời nằm trong /Volumes.
+         * Cho mở thẳng vào đây để dễ chọn USB/SSD ngoài.
+         */
+        if (isMacOS()) {
+            File volumesFolder = new File("/Volumes");
+
+            if (volumesFolder.exists()) {
+                chooser.setCurrentDirectory(volumesFolder);
+            }
+        }
+
+        return chooser;
+    }
+
+    private boolean isMacOS() {
+        String os = System.getProperty("os.name").toLowerCase();
+        return os.contains("mac");
+    }
+
+    private File chooseFolderNative(String title) {
+        if (isMacOS()) {
+            System.setProperty("apple.awt.fileDialogForDirectories", "true");
+
+            FileDialog dialog = new FileDialog(
+                    (Frame) null,
+                    title,
+                    FileDialog.LOAD);
+
+            File volumesFolder = new File("/Volumes");
+
+            if (volumesFolder.exists()) {
+                dialog.setDirectory("/Volumes");
+            }
+
+            dialog.setVisible(true);
+
+            String directory = dialog.getDirectory();
+            String file = dialog.getFile();
+
+            System.setProperty("apple.awt.fileDialogForDirectories", "false");
+
+            if (directory == null || file == null) {
+                return null;
+            }
+
+            return new File(directory, file);
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setAcceptAllFileFilterUsed(false);
+        chooser.setDialogTitle(title);
+
+        int result = chooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            return chooser.getSelectedFile();
+        }
+
+        return null;
     }
 
     private void log(String message) {
