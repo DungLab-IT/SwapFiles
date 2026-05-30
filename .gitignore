@@ -1,10 +1,15 @@
+# Các file tạm và file thực thi của NetBeans (Windows)
 **/nbproject/private/
 **/nbproject/Makefile-*.mk
 **/nbproject/Package-*.bash
 build/
 nbdist/
 dist/
-.mtj.tmp/
 *.jar
 *.war
 *.ear
+
+# Các file cấu hình hệ thống của VS Code (Mac)
+.vscode/
+.DS_Store
+*.class
