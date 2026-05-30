@@ -147,6 +147,10 @@ public class TrayService {
         }
     }
 
+    public TrayIcon getTrayIcon() {
+        return trayIcon;
+    }
+
     private Image createTrayImage() {
         int size = 16;
 

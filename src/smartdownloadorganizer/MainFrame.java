@@ -3,9 +3,14 @@ package smartdownloadorganizer;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.Desktop;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.io.File;
+import java.io.IOException;
 
 public class MainFrame extends JFrame {
 
@@ -49,12 +54,14 @@ public class MainFrame extends JFrame {
         organizerService = new FileOrganizerService(
                 categoryManager,
                 historyService,
-                this::log);
+                this::log,
+                this::showNotification);
 
         setTitle("DungLab_SwapFiles");
-        setSize(1000, 680);
+        setSize(1200, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         initUI();
 
@@ -70,6 +77,7 @@ public class MainFrame extends JFrame {
 
     private void initUI() {
         JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
         tabbedPane.addTab("Dashboard", createDashboardPanel());
         tabbedPane.addTab("Categories", createCategoriesPanel());
@@ -82,23 +90,37 @@ public class MainFrame extends JFrame {
     private JPanel createDashboardPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panel.setBackground(Color.WHITE);
 
         JPanel sourcePanel = new JPanel(new BorderLayout(8, 8));
+        sourcePanel.setBackground(Color.WHITE);
+        sourcePanel.setBorder(BorderFactory.createTitledBorder("Source Folder"));
 
-        JLabel sourceLabel = new JLabel("Thư mục cần sắp xếp:");
+        JLabel sourceLabel = new JLabel("Select folder to organize:");
+        sourceLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sourceFolderField = new JTextField(getDefaultDownloadFolder());
-        JButton chooseButton = new JButton("Chọn thư mục");
+        sourceFolderField.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        sourceFolderField.setEditable(false);
+        JButton chooseButton = new JButton("Browse...");
+        chooseButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         sourcePanel.add(sourceLabel, BorderLayout.WEST);
         sourcePanel.add(sourceFolderField, BorderLayout.CENTER);
         sourcePanel.add(chooseButton, BorderLayout.EAST);
 
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        actionPanel.setBackground(Color.WHITE);
+        actionPanel.setBorder(BorderFactory.createTitledBorder("Actions"));
 
         JButton organizeNowButton = new JButton("Organize Now");
-        startWatchButton = new JButton("Start Auto Watch");
-        stopWatchButton = new JButton("Stop Auto Watch");
+        startWatchButton = new JButton("▶ Start Auto Watch");
+        stopWatchButton = new JButton("⏹ Stop Auto Watch");
         JButton clearLogButton = new JButton("Clear Log");
+
+        for (JButton btn : new JButton[]{organizeNowButton, startWatchButton, stopWatchButton, clearLogButton}) {
+            btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            btn.setPreferredSize(new Dimension(140, 35));
+        }
 
         stopWatchButton.setEnabled(false);
 
@@ -109,9 +131,14 @@ public class MainFrame extends JFrame {
 
         logArea = new JTextArea();
         logArea.setEditable(false);
-        logArea.setFont(new Font("Consolas", Font.PLAIN, 14));
+        logArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        logArea.setBackground(Color.BLACK);
+        logArea.setForeground(Color.WHITE);
+        logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(true);
 
         JScrollPane logScrollPane = new JScrollPane(logArea);
+        logScrollPane.setBorder(BorderFactory.createTitledBorder("Log"));
 
         JPanel topPanel = new JPanel(new BorderLayout(10, 10));
         topPanel.add(sourcePanel, BorderLayout.NORTH);
@@ -132,9 +159,10 @@ public class MainFrame extends JFrame {
     private JPanel createCategoriesPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panel.setBackground(Color.WHITE);
 
         categoryTableModel = new DefaultTableModel(
-                new Object[] { "Danh mục", "Đuôi file", "Thư mục lưu", "Bật" },
+                new Object[] { "Category", "Extensions", "Target Folder", "Enabled" },
                 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -151,14 +179,24 @@ public class MainFrame extends JFrame {
         };
 
         categoryTable = new JTable(categoryTableModel);
-        categoryTable.setRowHeight(28);
+        categoryTable.setRowHeight(32);
+        categoryTable.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        categoryTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         JScrollPane scrollPane = new JScrollPane(categoryTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Categories"));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        JButton chooseTargetButton = new JButton("Chọn thư mục lưu");
-        JButton saveCategoryButton = new JButton("Lưu chỉnh sửa");
+        JButton chooseTargetButton = new JButton("📁 Choose Target Folder");
+        JButton saveCategoryButton = new JButton("💾 Save Changes");
+
+        for (JButton btn : new JButton[]{chooseTargetButton, saveCategoryButton}) {
+            btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            btn.setPreferredSize(new Dimension(150, 32));
+        }
 
         buttonPanel.add(chooseTargetButton);
         buttonPanel.add(saveCategoryButton);
@@ -186,26 +224,53 @@ public class MainFrame extends JFrame {
         };
 
         historyTable = new JTable(historyTableModel);
-        historyTable.setRowHeight(28);
+        historyTable.setRowHeight(32);
+        historyTable.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        historyTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        historyTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+
+        // Double-click to open file
+        historyTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && historyTable.getSelectedRow() != -1) {
+                    openSelectedFile();
+                }
+            }
+        });
 
         JScrollPane scrollPane = new JScrollPane(historyTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("History"));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        JButton undoButton = new JButton("Undo Selected");
-        JButton clearHistoryButton = new JButton("Clear History");
+        JButton openFileButton = new JButton("📁 Open File");
+        JButton openFolderButton = new JButton("📂 Open Folder");
+        JButton undoButton = new JButton("↶ Undo");
+        JButton clearHistoryButton = new JButton("🗑 Clear");
 
+        for (JButton btn : new JButton[]{openFileButton, openFolderButton, undoButton, clearHistoryButton}) {
+            btn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            btn.setPreferredSize(new Dimension(110, 32));
+        }
+
+        buttonPanel.add(openFileButton);
+        buttonPanel.add(openFolderButton);
         buttonPanel.add(undoButton);
         buttonPanel.add(clearHistoryButton);
 
         panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
+        openFileButton.addActionListener(e -> openSelectedFile());
+        openFolderButton.addActionListener(e -> openSelectedFolder());
         undoButton.addActionListener(e -> undoSelectedHistory());
 
         clearHistoryButton.addActionListener(e -> {
             historyService.clearHistory();
-            log("Đã xóa lịch sử.");
+            log("History cleared.");
         });
 
         return panel;
@@ -214,16 +279,27 @@ public class MainFrame extends JFrame {
     private JPanel createSettingsPanel() {
         JPanel panel = new JPanel(new GridLayout(0, 1, 8, 8));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panel.setBackground(Color.WHITE);
 
-        JCheckBox autoRename = new JCheckBox("Tự động đổi tên khi trùng file", true);
-        JCheckBox skipTemp = new JCheckBox("Bỏ qua file đang tải dở", true);
-        JCheckBox askBeforeMove = new JCheckBox("Hỏi trước khi di chuyển", false);
-        JCheckBox notification = new JCheckBox("Hiện thông báo khi chuyển file thành công", false);
-        autoStartCheckBox = new JCheckBox("Tự chạy cùng Windows", configService.getAutoStartSetting());
+        JCheckBox autoRename = new JCheckBox("Auto-rename when filename exists", true);
+        JCheckBox skipTemp = new JCheckBox("Skip incomplete downloads (.crdownload, .part, .tmp)", true);
+        JCheckBox askBeforeMove = new JCheckBox("Ask before moving files", false);
+        JCheckBox notification = new JCheckBox("Show notification when file is moved", false);
+        autoStartCheckBox = new JCheckBox("Auto-start with system", configService.getAutoStartSetting());
 
-        JButton saveSettingsButton = new JButton("Lưu cài đặt");
-        JButton exportSettingsButton = new JButton("Xuất cài đặt");
-        JButton importSettingsButton = new JButton("Nhập cài đặt");
+        for (JCheckBox cb : new JCheckBox[]{autoRename, skipTemp, askBeforeMove, notification, autoStartCheckBox}) {
+            cb.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            cb.setBackground(Color.WHITE);
+        }
+
+        JButton saveSettingsButton = new JButton("💾 Save Settings");
+        JButton exportSettingsButton = new JButton("📤 Export Config");
+        JButton importSettingsButton = new JButton("📥 Import Config");
+
+        for (JButton btn : new JButton[]{saveSettingsButton, exportSettingsButton, importSettingsButton}) {
+            btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            btn.setPreferredSize(new Dimension(140, 35));
+        }
 
         panel.add(autoRename);
         panel.add(skipTemp);
@@ -236,7 +312,7 @@ public class MainFrame extends JFrame {
 
         saveSettingsButton.addActionListener(e -> {
             saveSettingsToFile();
-            log("Đã lưu cài đặt vào: " + configService.getConfigFile());
+            log("Settings saved to: " + configService.getConfigFile());
         });
 
         autoStartCheckBox.addActionListener(e -> toggleAutoStart());
@@ -672,6 +748,102 @@ public class MainFrame extends JFrame {
         }
 
         return null;
+    }
+
+    private void openSelectedFile() {
+        int selectedRow = historyTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Bạn cần chọn một dòng lịch sử để mở file.");
+            return;
+        }
+
+        try {
+            HistoryRecord record = historyService.getHistoryRecords().get(selectedRow);
+            Path targetPath = record.getTargetPath();
+            File file = targetPath.toFile();
+
+            if (!file.exists()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "File không còn tồn tại tại:\n" + targetPath);
+                return;
+            }
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(file);
+                log("Đã mở file: " + file.getName());
+            } else {
+                JOptionPane.showMessageDialog(this, "Hệ thống không hỗ trợ mở file.");
+            }
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi khi mở file: " + ex.getMessage());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi không xác định: " + ex.getMessage());
+        }
+    }
+
+    private void openSelectedFolder() {
+        int selectedRow = historyTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Bạn cần chọn một dòng lịch sử để mở thư mục.");
+            return;
+        }
+
+        try {
+            HistoryRecord record = historyService.getHistoryRecords().get(selectedRow);
+            Path targetPath = record.getTargetPath();
+            Path parentFolder = targetPath.getParent();
+
+            if (parentFolder == null || !Files.exists(parentFolder)) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Thư mục không còn tồn tại tại:\n" + (parentFolder != null ? parentFolder : targetPath));
+                return;
+            }
+
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(parentFolder.toFile());
+                log("Đã mở thư mục: " + parentFolder);
+            } else {
+                JOptionPane.showMessageDialog(this, "Hệ thống không hỗ trợ mở thư mục.");
+            }
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Lỗi khi mở thư mục: " + ex.getMessage());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error: " + ex.getMessage());
+        }
+    }
+
+    private void showNotification(String fileName, String category) {
+        try {
+            if (!Desktop.isDesktopSupported()) {
+                return;
+            }
+
+            // Hiển thị notification trên system tray
+            if (trayService != null && trayService.getTrayIcon() != null) {
+                SwingUtilities.invokeLater(() -> {
+                    trayService.getTrayIcon().displayMessage(
+                            "File Organized",
+                            fileName + " → " + category,
+                            TrayIcon.MessageType.INFO
+                    );
+                });
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private void log(String message) {

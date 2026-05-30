@@ -10,9 +10,14 @@ public class FileOrganizerService {
     private final CategoryManager categoryManager;
     private final HistoryService historyService;
     private final LogCallback logCallback;
+    private final NotificationCallback notificationCallback;
 
     public interface LogCallback {
         void log(String message);
+    }
+
+    public interface NotificationCallback {
+        void notify(String fileName, String category);
     }
 
     public FileOrganizerService(
@@ -20,9 +25,19 @@ public class FileOrganizerService {
             HistoryService historyService,
             LogCallback logCallback
     ) {
+        this(categoryManager, historyService, logCallback, null);
+    }
+
+    public FileOrganizerService(
+            CategoryManager categoryManager,
+            HistoryService historyService,
+            LogCallback logCallback,
+            NotificationCallback notificationCallback
+    ) {
         this.categoryManager = categoryManager;
         this.historyService = historyService;
         this.logCallback = logCallback;
+        this.notificationCallback = notificationCallback;
     }
 
     public void organizeFolder(Path sourceFolder) {
@@ -129,13 +144,17 @@ public class FileOrganizerService {
 
             Files.move(filePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            log("Đã chuyển: "
+            log("Moved: "
                     + fileName
                     + " → "
                     + category.getName()
                     + " → "
                     + targetPath
             );
+
+            if (notificationCallback != null) {
+                notificationCallback.notify(fileName, category.getName());
+            }
 
             if (historyService != null) {
                 historyService.addRecord(new HistoryRecord(
