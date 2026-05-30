@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class AutoStartService {
 
-    private static final String APP_NAME = "SmartDownloadOrganizer";
+    private static final String APP_NAME = "DungLab_SwapFiles";
     private static final String STARTUP_BAT_NAME = APP_NAME + ".bat";
 
     public boolean isWindows() {

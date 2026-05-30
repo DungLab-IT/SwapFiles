@@ -62,7 +62,7 @@ public class TrayService {
 
         Image trayImage = createTrayImage();
 
-        trayIcon = new TrayIcon(trayImage, "Smart Download Organizer", popupMenu);
+        trayIcon = new TrayIcon(trayImage, "DungLab_SwapFiles", popupMenu);
         trayIcon.setImageAutoSize(true);
 
         openItem.addActionListener(e -> showFrame());
@@ -118,11 +118,11 @@ public class TrayService {
         frame.setVisible(false);
 
         if (trayIcon != null) {
-            trayIcon.displayMessage(
-                    "Smart Download Organizer",
+                trayIcon.displayMessage(
+                    "DungLab_SwapFiles",
                     "Ứng dụng đang chạy nền trong khay hệ thống.",
                     TrayIcon.MessageType.INFO
-            );
+                );
         }
     }
 

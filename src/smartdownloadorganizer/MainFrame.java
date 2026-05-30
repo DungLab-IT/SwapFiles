@@ -51,7 +51,7 @@ public class MainFrame extends JFrame {
                 historyService,
                 this::log);
 
-        setTitle("Smart Download Organizer");
+        setTitle("DungLab_SwapFiles");
         setSize(1000, 680);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -431,7 +431,7 @@ public class MainFrame extends JFrame {
     private void exportSettingsToFile() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Xuất file cài đặt");
-        chooser.setSelectedFile(new java.io.File("SmartDownloadOrganizer-Settings.properties"));
+        chooser.setSelectedFile(new java.io.File("DungLab_SwapFiles-Settings.properties"));
 
         int result = chooser.showSaveDialog(this);
 
@@ -519,7 +519,7 @@ public class MainFrame extends JFrame {
                                 + "Yes: Ẩn xuống khay\n"
                                 + "No: Thoát ứng dụng\n"
                                 + "Cancel: Hủy",
-                        "Smart Download Organizer",
+                        "DungLab_SwapFiles",
                         JOptionPane.YES_NO_CANCEL_OPTION);
 
                 if (choice == JOptionPane.YES_OPTION) {

@@ -18,7 +18,7 @@ public class ConfigService {
     public ConfigService() {
         String userHome = System.getProperty("user.home");
 
-        appConfigFolder = Paths.get(userHome, ".smart-download-organizer");
+        appConfigFolder = Paths.get(userHome, ".dunglab-swapfiles");
         configFile = appConfigFolder.resolve("config.properties");
 
         createConfigFolderIfNeeded();
@@ -50,7 +50,7 @@ public class ConfigService {
     public void saveSettings(String sourceFolder, CategoryManager categoryManager) {
         properties.clear();
 
-        properties.setProperty("app.name", "Smart Download Organizer");
+        properties.setProperty("app.name", "DungLab_SwapFiles");
         properties.setProperty("config.version", "1");
         properties.setProperty("source.folder", sourceFolder);
 
@@ -117,7 +117,7 @@ public class ConfigService {
 
     private void saveToFile(Path file) {
         try (OutputStream outputStream = Files.newOutputStream(file)) {
-            properties.store(outputStream, "Smart Download Organizer Settings");
+            properties.store(outputStream, "DungLab_SwapFiles Settings");
         } catch (IOException e) {
             e.printStackTrace();
         }
